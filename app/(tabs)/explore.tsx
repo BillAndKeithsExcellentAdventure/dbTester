@@ -6,8 +6,9 @@ import ParallaxScrollView from "@/components/ParallaxScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import { JobTrakrDB, JobData } from "jobdb";
+import { JobTrakrDB } from "jobdb";
 import { useEffect, useState } from "react";
+import { JobData, JobCategoryData, JobCategoryItemData } from "jobdb/dist/interfaces";
 
 export default function TabTwoScreen() {
     const [db, setDb] = useState<JobTrakrDB | null>(null);
@@ -15,6 +16,7 @@ export default function TabTwoScreen() {
     useEffect(() => {
         async function initDb() {
             console.info("Initializing DB...");
+            // the (1) is the UserId
             const myDb = new JobTrakrDB(1);
             const status = await myDb.OpenDatabase();
             if (status === "Success") {
@@ -40,58 +42,10 @@ export default function TabTwoScreen() {
         console.info(`Deleted job with id ${newId.value}. Status = ${deleteStatus}`);
     };
 
-    const doCreateJobs = async () => {
+    const doCreateSampleData = async () => {
         console.info("Creating jobs...");
 
-        let newId = { value: 0n };
-        const createStatus = await db?.GetJobDB().CreateJob(newId, {
-            _id: 0n,
-            Code: "Test Company",
-            Name: "Test Location",
-            JobTypeId: 1n,
-            CustomerId: 1n,
-            JobLocation: "9940 Blacksmith Way",
-            StartDate: new Date(),
-            PlannedFinish: new Date(),
-            BidPrice: 1000.0,
-            JobStatus: "Active",
-        });
-
-        console.info(`Created new job with id ${newId.value}. Status = ${createStatus}`);
-
-        const updateStatus = await db?.GetJobDB().UpdateJob({
-            _id: newId.value,
-            Code: "Updated Test Company",
-            Name: "Updated Test Location",
-            JobTypeId: 11n,
-            CustomerId: 11n,
-            JobLocation: "Updated 9940 Blacksmith Way",
-            StartDate: new Date(),
-            PlannedFinish: new Date(),
-            BidPrice: 2000.0,
-            JobStatus: "Active",
-        });
-
-        console.info(`Updated job with id ${newId.value}. Status = ${updateStatus}`);
-    };
-
-    const doCreateCategories = async () => {
-        console.info("Now query all the jobs:");
-        const jobs: JobData[] = [];
-        const queryStatus = await db?.GetJobDB().FetchAllJobs(jobs);
-        for (const job of jobs) {
-            console.info(`     Job: ${job._id} = ${job.Code} - ${job.Name}`);
-            let newCatId = { value: 0n };
-            const createStatus = await db?.GetCategoryDB().CreateCategory(newCatId, {
-                _id: 0n,
-                JobId: job._id,
-                Code: "Test Cat",
-                CategoryName: "Test Cat Name",
-                EstPrice: 1000.0,
-                CategoryStatus: "Active",
-            });
-            console.info(`Created new category with id ${newCatId.value}. Status = ${createStatus}`);
-        }
+        await db?.CreateSampleData();
     };
 
     const exportDb = () => {
@@ -117,14 +71,10 @@ export default function TabTwoScreen() {
                 {db === null ? (
                     <ThemedText>Loading...</ThemedText>
                 ) : (
-                    <ThemedView>
+                    <ThemedView style={styles.container}>
                         <Button
-                            title="Create Jobs"
-                            onPress={doCreateJobs}
-                        />
-                        <Button
-                            title="Create Categories"
-                            onPress={doCreateCategories}
+                            title="Create Sample Data"
+                            onPress={doCreateSampleData}
                         />
                         <Button
                             title="Export Db"
@@ -152,5 +102,13 @@ const styles = StyleSheet.create({
     titleContainer: {
         flexDirection: "row",
         gap: 8,
+    },
+    container: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    button: {
+        margin: 10, // Add margin around the button
     },
 });
