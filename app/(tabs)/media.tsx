@@ -44,12 +44,27 @@ export default function NoIdeaHowThisWorks() {
         }
     };
 
+    const onPressPrevious = async () => {
+        const assetsArray = await mediaAssets?.getPreviousAssetPage();
+        console.log(`Got getPreviousAssetPage finished: ${JSON.stringify(assetsArray)}`);
+        if (assetsArray !== undefined) {
+            console.log(`   Previous ${assetsArray.length} assets`);
+            setAssets(assetsArray);
+        }
+    };
+
     return (
         <View style={styles.container}>
-            <View>
+            <View style={{ marginTop: 40 }}>
                 <Button
                     title="Next"
                     onPress={onPressNext}
+                />
+            </View>
+            <View style={{ marginTop: 40 }}>
+                <Button
+                    title="Previous"
+                    onPress={onPressPrevious}
                 />
             </View>
             <ScrollView
