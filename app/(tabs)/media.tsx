@@ -5,12 +5,18 @@ import * as MediaLibrary from "expo-media-library";
 import { Albums, MediaAssets } from "jobmedia";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
+import { JobTrakrDB } from "jobdb";
+import { JobData } from "jobdb/dist/interfaces";
 
 export default function NoIdeaHowThisWorks() {
     const [albums, setAlbums] = useState<MediaLibrary.Album[] | null>(null);
     const [assets, setAssets] = useState<MediaLibrary.Asset[] | null>(null);
     const [state, setState] = useState<MediaLibrary.PermissionResponse | null>(null);
     const [mediaAssets, setMediaAssets] = useState<MediaAssets | null>(null);
+    const [thumbnail, setThumbnail] = useState<string | undefined>(undefined);
+    const [db, setDb] = useState<JobTrakrDB | null>(null);
+    const [jobs, setJobs] = useState<JobData[]>([]);
+    const [currentJob, setCurrentJob] = useState<JobData | undefined>(undefined);
 
     useEffect(() => {
         async function initMedia() {
@@ -28,18 +34,62 @@ export default function NoIdeaHowThisWorks() {
             }
         }
 
+        async function initDb() {
+            console.info("Initializing DB...");
+            // the (1) is the UserId
+            const myDb = new JobTrakrDB(1);
+            const status = await myDb.OpenDatabase();
+            if (status === "Success") {
+                const db = myDb.GetDb();
+                console.info("DB Initialized. Opening...");
+                setDb(myDb);
+                console.info("DB Initialized");
+            }
+        }
+
+        initDb();
+
         initMedia();
     }, []);
 
-    const onPress = (asset: MediaLibrary.Asset) => {
+    const onPressLoadJobs = async () => {
+        let localJostData: JobData[] = [];
+        const dbStatus = await db?.GetJobDB().FetchAllJobs(localJostData);
+        setJobs(localJostData);
+
+        if (dbStatus === "Success") {
+            console.info(`Fetched ${jobs.length} jobs`);
+        } else {
+            console.error(`Failed to fetch jobs with status: ${dbStatus}`);
+        }
+    };
+
+    const onJobPress = async (job: JobData) => {
+        console.log(`Pressed job: ${job.Name}`);
+        setCurrentJob(job);
+    };
+
+    const onPress = async (asset: MediaLibrary.Asset) => {
         console.log("Pressed");
         console.log(asset);
+        const tn = await mediaAssets?.createThumbnail(asset.uri, asset.id, 100, 100);
+
+        if (tn) {
+            console.log(`Ready to set thumbnail for job: ${currentJob?.Name}`);
+            setThumbnail(tn);
+
+            if (currentJob?._id !== undefined && currentJob?._id !== null) {
+                const status = await db?.GetJobDB().UpdateThumbnail(tn, currentJob._id);
+                console.info(`Updated thumbnail for job ${currentJob.Name}. Status = ${status}`);
+            }
+        }
     };
 
     const onPressNext = async () => {
         const assetsArray = await mediaAssets?.getNextAssetPage();
         if (assetsArray) {
             console.log(`   Next ${assetsArray.length} assets`);
+            console.log(`Got onPressNext finished: ${JSON.stringify(assetsArray)}`);
             setAssets(assetsArray);
         }
     };
@@ -55,21 +105,54 @@ export default function NoIdeaHowThisWorks() {
 
     return (
         <View style={styles.container}>
-            <View style={{ marginTop: 40 }}>
-                <Button
-                    title="Next"
-                    onPress={onPressNext}
-                />
-            </View>
-            <View style={{ marginTop: 40 }}>
-                <Button
-                    title="Previous"
-                    onPress={onPressPrevious}
-                />
-            </View>
             <ScrollView
-                style={{ flex: 1, marginTop: 40 }}
+                style={styles.leftScroll}
                 contentContainerStyle={{ flexGrow: 1 }}>
+                <View style={{ marginTop: 20 }}>
+                    <Button
+                        title="Load Jobs"
+                        onPress={onPressLoadJobs}
+                    />
+                </View>
+                {jobs ? (
+                    jobs.map((job) => (
+                        <View key={job._id}>
+                            <TouchableOpacity
+                                style={styles.button}
+                                onPress={() => onJobPress(job)}>
+                                <ThemedText>{job.Name}</ThemedText>
+                            </TouchableOpacity>
+                            <Image
+                                source={{
+                                    uri: `data:image/jpeg;base64,${job.Thumbnail}`,
+                                }}
+                                style={{
+                                    width: 100,
+                                    height: 100,
+                                    resizeMode: "contain",
+                                }}
+                            />
+                        </View>
+                    ))
+                ) : (
+                    <ThemedText>Loading...</ThemedText>
+                )}
+            </ScrollView>
+            <ScrollView
+                style={styles.rightScroll}
+                contentContainerStyle={{ flexGrow: 1 }}>
+                <View style={{ marginTop: 20 }}>
+                    <Button
+                        title="Next"
+                        onPress={onPressNext}
+                    />
+                </View>
+                <View style={{ marginTop: 20 }}>
+                    <Button
+                        title="Previous"
+                        onPress={onPressPrevious}
+                    />
+                </View>
                 {assets ? (
                     assets.map((asset) => (
                         <View key={asset.id}>
@@ -104,6 +187,7 @@ const styles = StyleSheet.create({
         marginTop: 40,
         justifyContent: "center",
         alignItems: "center",
+        flexDirection: "row",
     },
     text: {
         fontSize: 24,
@@ -113,5 +197,13 @@ const styles = StyleSheet.create({
     },
     button: {
         margin: 10, // Add margin around the button
+    },
+    leftScroll: {
+        flex: 1,
+        padding: 10,
+    },
+    rightScroll: {
+        flex: 2,
+        padding: 10,
     },
 });
