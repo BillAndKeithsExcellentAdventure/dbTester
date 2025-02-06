@@ -9,16 +9,15 @@ import { ThemedText } from "@/components/ThemedText";
 import { JobTrakrDB } from "jobdb";
 import { JobData } from "jobdb/dist/interfaces";
 
-export default function NoIdeaHowThisWorks() {
+export default function NoIdeaHowThisWorks2() {
     const [albums, setAlbums] = useState<MediaLibrary.Album[] | null>(null);
-    const [assets, setAssets] = useState<MediaLibrary.Asset[] | null>(null);
+    const [jobAssets, setJobAssets] = useState<MediaLibrary.Asset[] | null>(null);
     const [state, setState] = useState<MediaLibrary.PermissionResponse | null>(null);
     const [mediaAssets, setMediaAssets] = useState<MediaAssets | null>(null);
     const [thumbnail, setThumbnail] = useState<string | undefined>(undefined);
     const [db, setDb] = useState<JobTrakrDB | null>(null);
     const [jobs, setJobs] = useState<JobData[]>([]);
     const [currentJob, setCurrentJob] = useState<JobData | undefined>(undefined);
-    const [isSetThumbnailSelected, setSetThumbnailSelection] = useState(false);
 
     useEffect(() => {
         async function initMedia() {
@@ -28,12 +27,6 @@ export default function NoIdeaHowThisWorks() {
 
             const mediaAssets = new MediaAssets();
             setMediaAssets(mediaAssets);
-            const assetsArray = await mediaAssets?.getFirstAssetPage(10);
-            console.log(`Got getFirstAssetPage finished: ${assetsArray}`);
-            if (assetsArray) {
-                console.log(`Got ${assetsArray.length} assets`);
-                setAssets(assetsArray);
-            }
         }
 
         async function initDb() {
@@ -68,51 +61,18 @@ export default function NoIdeaHowThisWorks() {
 
     const onJobPress = async (job: JobData) => {
         console.log(`Pressed job: ${job.Name}`);
-        setCurrentJob(job);
+        if (job) {
+            setCurrentJob(job);
+            let localAssets: MediaLibrary.Asset[] = [];
+            const status = await db?.GetPictureBucketDB().FetchJobAssets(job?._id, localAssets);
+            console.log(`Fetched ${localAssets.length} assets for job ${job.Name}`);
+            setJobAssets(localAssets);
+        }
     };
 
     const onPress = async (asset: MediaLibrary.Asset) => {
         console.log("Pressed");
-        console.log(asset);
-
-        if (isSetThumbnailSelected) {
-            const tn = await mediaAssets?.createThumbnail(asset.uri, asset.id, 100, 100);
-
-            if (tn) {
-                console.log(`Ready to set thumbnail for job: ${currentJob?.Name}`);
-                setThumbnail(tn);
-
-                if (currentJob?._id !== undefined && currentJob?._id !== null) {
-                    const status = await db?.GetJobDB().UpdateThumbnail(tn, currentJob._id);
-                    console.info(`Updated thumbnail for job ${currentJob.Name}. Status = ${status}`);
-                }
-            }
-        } else {
-            if (currentJob?._id !== undefined && currentJob?._id !== null) {
-                // Selecting a picture for the bucket.
-                let id: { value: bigint } = { value: 0n };
-
-                db?.GetPictureBucketDB().InsertPicture(id, currentJob?._id, asset);
-            }
-        }
-    };
-
-    const onPressNext = async () => {
-        const assetsArray = await mediaAssets?.getNextAssetPage();
-        if (assetsArray) {
-            console.log(`   Next ${assetsArray.length} assets`);
-            console.log(`Got onPressNext finished: ${JSON.stringify(assetsArray)}`);
-            setAssets(assetsArray);
-        }
-    };
-
-    const onPressPrevious = async () => {
-        const assetsArray = await mediaAssets?.getPreviousAssetPage();
-        console.log(`Got getPreviousAssetPage finished: ${JSON.stringify(assetsArray)}`);
-        if (assetsArray !== undefined) {
-            console.log(`   Previous ${assetsArray.length} assets`);
-            setAssets(assetsArray);
-        }
+        console.log(`    ${asset}`);
     };
 
     return (
@@ -125,31 +85,6 @@ export default function NoIdeaHowThisWorks() {
                         title="Load Jobs"
                         onPress={onPressLoadJobs}
                     />
-                </View>
-                <View style={styles.titleContainer}>
-                    {isSetThumbnailSelected ? (
-                        <>
-                            <Button
-                                title="Add Picture"
-                                onPress={() => {
-                                    console.log("SetPicture");
-                                    setSetThumbnailSelection(false);
-                                }}
-                            />
-                            <ThemedText>{"(Setting Thumbnail)"}</ThemedText>
-                        </>
-                    ) : (
-                        <>
-                            <Button
-                                title="Set Thumbnail"
-                                onPress={() => {
-                                    console.log("Add Thumbnail");
-                                    setSetThumbnailSelection(true);
-                                }}
-                            />
-                            <ThemedText>{"(Adding Pictures)"}</ThemedText>
-                        </>
-                    )}
                 </View>
 
                 {jobs ? (
@@ -179,25 +114,23 @@ export default function NoIdeaHowThisWorks() {
             <ScrollView
                 style={styles.rightScroll}
                 contentContainerStyle={{ flexGrow: 1 }}>
-                <View style={{ marginTop: 20 }}>
-                    <Button
-                        title="Next"
-                        onPress={onPressNext}
-                    />
-                </View>
-                <View style={{ marginTop: 20 }}>
-                    <Button
-                        title="Previous"
-                        onPress={onPressPrevious}
-                    />
-                </View>
-                {assets ? (
-                    assets.map((asset) => (
+                {jobAssets ? (
+                    jobAssets.map((asset) => (
                         <View key={asset.id}>
                             <TouchableOpacity
                                 style={styles.button}
                                 onPress={() => onPress(asset)}>
                                 <ThemedText>{asset.filename}</ThemedText>
+                                <Image
+                                    source={{
+                                        uri: `${asset.uri}`,
+                                    }}
+                                    style={{
+                                        width: 100,
+                                        height: 100,
+                                        resizeMode: "contain",
+                                    }}
+                                />
                             </TouchableOpacity>
                         </View>
                     ))
