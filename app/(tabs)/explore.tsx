@@ -18,7 +18,7 @@ export default function TabTwoScreen() {
             console.info("Initializing DB...");
             // the (1) is the UserId
             const myDb = new JobTrakrDB(1);
-            const status = await myDb.OpenDatabase();
+            const status = await myDb.OpenDatabase(true);
             if (status === "Success") {
                 const db = myDb.GetDb();
                 console.info("DB Initialized. Opening...");

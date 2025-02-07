@@ -55,14 +55,12 @@ export default function NoIdeaHowThisWorks() {
     }, []);
 
     const onPressLoadJobs = async () => {
-        let localJostData: JobData[] = [];
-        const dbStatus = await db?.GetJobDB().FetchAllJobs(localJostData);
-        setJobs(localJostData);
-
-        if (dbStatus === "Success") {
-            console.info(`Fetched ${jobs.length} jobs`);
+        const jobs = await db?.GetJobDB().FetchAllJobs();
+        if (jobs?.status === "Success") {
+            setJobs(jobs.jobs);
+            console.info(`Fetched ${jobs.jobs.length} jobs`);
         } else {
-            console.error(`Failed to fetch jobs with status: ${dbStatus}`);
+            console.error(`Failed to fetch jobs with status: ${jobs?.status}`);
         }
     };
 
