@@ -78,6 +78,19 @@ export default function TabLayout() {
                     ),
                 }}
             />
+            <Tabs.Screen
+                name="nearestPictures"
+                options={{
+                    title: "Show Nearest Pictures",
+                    tabBarIcon: ({ color }) => (
+                        <IconSymbol
+                            size={28}
+                            name="paperplane.fill"
+                            color={color}
+                        />
+                    ),
+                }}
+            />
         </Tabs>
     );
 }
