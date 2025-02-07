@@ -48,13 +48,13 @@ export default function NoIdeaHowThisWorks2() {
     }, []);
 
     const onPressLoadJobs = async () => {
-        const jobs = await db?.GetJobDB().FetchAllJobs();
+        const { status, jobs } = (await db?.GetJobDB().FetchAllJobs()) ?? { status: "Failed", jobs: [] };
 
-        if (jobs?.status === "Success") {
-            setJobs(jobs.jobs);
-            console.info(`Fetched ${jobs.jobs.length} jobs`);
+        if (status === "Success") {
+            setJobs(jobs);
+            console.info(`Fetched ${jobs.length} jobs`);
         } else {
-            console.error(`Failed to fetch jobs with status: ${jobs?.status}`);
+            console.error(`Failed to fetch jobs with status: ${status}`);
         }
     };
 
